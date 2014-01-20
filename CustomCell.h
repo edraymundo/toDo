@@ -11,5 +11,6 @@
 @interface CustomCell : UITableViewCell
 
 @property (nonatomic,weak) IBOutlet UITextField *todoField;
+@property (strong, nonatomic) IBOutlet UIButton *editButton;
 
 @end

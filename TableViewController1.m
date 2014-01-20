@@ -8,6 +8,7 @@
 
 #import "TableViewController1.h"
 #import "CustomCell.h"
+#import <objc/runtime.h>
 
 @interface TableViewController1 ()
 
@@ -30,40 +31,54 @@
 {
     [super viewDidLoad];
     
-    //self.tableData = [NSMutableArray arrayWithObjects:@"Egg Benedict", @"Mushroom Risotto", @"Full Breakfast", @"Hamburger", @"Ham and Egg Sandwich", @"Creme Brelee", @"White Chocolate Donut", @"Starbucks Coffee", @"Vegetable Curry", @"Instant Noodle with Egg", @"Noodle with BBQ Pork", @"Japanese Noodle with Pork", @"Green Tea", @"Thai Shrimp Cake", @"Angry Birds Cake", @"Ham and Cheese Panini", nil];
-    
-    //[self.tableData writeToFile:@"/tmp/test.data" atomically:YES];
-    
+    //load data from file
     [self loadData];
     
-    NSLog(@"%@",self.tableData);
-    
-    //self.tableData = [NSMutableArray arrayWithObjects:@" ",nil];
-    //[self.tableData insertObject:@"" atIndex:0];
-    
-    
+    //add XIB file
     UINib *customNib = [UINib nibWithNibName:@"CustomCell" bundle:nil];
     [self.tableView registerNib:customNib forCellReuseIdentifier:@"CustomCell"];
     
+    //add buttons
     self.navigationItem.leftBarButtonItem = self.editButtonItem;
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addItem:)];
 }
 
 - (void) loadData{
+     //get data from file
      self.tableData = [NSMutableArray arrayWithContentsOfFile:@"/tmp/test.data"];
 }
 
 - (void) saveData{
+    //save data to file
     [self.tableData writeToFile:@"/tmp/test.data" atomically:YES];
 }
 
+- (BOOL) textFieldShouldReturn:(UITextField *)textField {
+    [textField resignFirstResponder];
+    return YES;
+}
 
-//this method gets called when "+" is touched
+- (void)textFieldDidEndEditing:(UITextField *)textField
+{
+    //get index of textfield that was edited and save tableData to file
+    NSIndexPath *cellPath = objc_getAssociatedObject(textField, "key");
+    NSUInteger row = cellPath.row;
+    [self.tableData setObject:textField.text atIndexedSubscript:row];
+    [self.tableView reloadData];
+    [self saveData];
+}
+
+//this method gets called when "+" is touched, it pushes new row to tableData
 - (void)addItem:sender {
     
     [self.tableData insertObject:@"" atIndex:0];
+    
     [self.tableView reloadData];
     
+    NSIndexPath *indexPath = [NSIndexPath indexPathForRow:0 inSection:0];
+    UITableViewCell *tablecell =  [self.tableView cellForRowAtIndexPath:indexPath];
+    CustomCell *cell = (CustomCell *)tablecell;
+    [cell.todoField becomeFirstResponder];
 }
 
 - (void)didReceiveMemoryWarning
@@ -72,10 +87,6 @@
     // Dispose of any resources that can be recreated.
 }
 
-//- (void)onEditButton {
-  //  NSLog(@"test");
-// Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-//}
 
 #pragma mark - Table view data source
 
@@ -94,37 +105,11 @@
     static NSString *CellIdentifier = @"CustomCell";
     CustomCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier forIndexPath:indexPath];
     
-   // NSLog(@"%@",retArray);
+    cell.todoField.delegate = self;
     cell.todoField.text = [self.tableData objectAtIndex:indexPath.row];
 
     return cell;
 }
-
-/*
-// Override to support conditional editing of the table view.
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
-{
-      NSLog(@"im in1");
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
-}
-*/
-/*
-- (void)setEditing:(BOOL)editing animated:(BOOL)animate
-{
-    [super setEditing:editing animated:animate];
-    if(editing)
-    {
-        NSLog(@"editMode on");
-    }
-    else
-    {
-        NSLog(@"Done leave editmode");
-        //NSLog(@"%@",self.tableData);
-        [self saveData];
-    }
-}
- */
 
 // Override to support editing the table view.
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
@@ -142,27 +127,7 @@
     }
     [self saveData]; //save data
     [tableView reloadData]; //reload
-    
-  //  [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];
-
-   // if (editingStyle == UITableViewCellEditingStyleDelete) {
-        // Delete the row from the data source
-        
-     //   NSLog(@"im in2");
-      //  [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    //}
-    //else if (editingStyle == UITableViewCellEditingStyleInsert) {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-    //}
 }
-
-/*
-
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath
-{
-}
-*/
 
 
 // Override to support conditional rearranging of the table view.
@@ -172,17 +137,5 @@
     return YES;
 }
 
-
-/*
-#pragma mark - Navigation
-
-// In a story board-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
-{
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
-}
-
- */
 
 @end
